@@ -38,6 +38,14 @@ void add_cover_image(GtkWidget *widget, gpointer data) {
     return;
 }
 
+void set_folder_selected_true(void) {
+    folder_selected = true;
+}
+
+void exit_success(void) {
+    exit(0);
+}
+
 static void activate(GtkApplication *app, gpointer user_data) {
 
     // Create the window
@@ -71,18 +79,16 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_box_pack_start(GTK_BOX(section_box), response_label, FALSE, FALSE, 0);
     g_signal_connect(add_cover, "clicked", G_CALLBACK(add_cover_image), response_label);
 
-    // Create the rest of the dummy buttons (dummy for the time being)
-    GtkWidget *button_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
-    gtk_box_pack_start(GTK_BOX(main_box), button_row, FALSE, FALSE, 0);
+    GtkWidget *select_folder = gtk_button_new_with_label("Select Folder");
+    gtk_widget_set_halign(select_folder, GTK_ALIGN_CENTER);
+    gtk_box_pack_start(GTK_BOX(main_box), select_folder, FALSE, FALSE, 0);
+    g_signal_connect(select_folder, "clicked", G_CALLBACK(set_folder_selected_true), NULL);
 
-    GtkWidget *button1 = gtk_button_new_with_label("Button1");
-    GtkWidget *button2 = gtk_button_new_with_label("Button2");
-    GtkWidget *button3 = gtk_button_new_with_label("Button3");
-
-    gtk_box_pack_start(GTK_BOX(button_row), button1, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(button_row), button2, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(button_row), button3, TRUE, TRUE, 0);
-
+    // Button to close the program
+    GtkWidget *close_program = gtk_button_new_with_label("Close");
+    gtk_widget_set_halign(close_program, GTK_ALIGN_CENTER);
+    gtk_box_pack_start(GTK_BOX(main_box), close_program, FALSE, FALSE, 0);
+    g_signal_connect(close_program, "clicked", G_CALLBACK(exit_success), NULL);
     gtk_widget_show_all(window);
 }
 
