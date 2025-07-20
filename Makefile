@@ -1,15 +1,21 @@
 CC = gcc
-CFLAGS = `pkg-config --cflags gtk+-3.0`
-LIBS = `pkg-config --libs gtk+-3.0`
-TARGET = hello_gtk
+CFLAGS = `pkg-config --cflags gtk+-3.0` -Wall -g
+LIBS = `pkg-config --libs gtk+-3.0` -ltag_c
 
-all: $(TARGET)
+SRC = main.c ui.c mp3_handler.c
+OBJ = $(SRC:.c=.o)
+BIN = mp3editor
 
-$(TARGET): main.c
-	$(CC) -o $(TARGET) main.c $(CFLAGS) $(LIBS)
+all: $(BIN)
 
-run: $(TARGET)
-	./$(TARGET)
+$(BIN): $(OBJ)
+	$(CC) -o $@ $^ $(LIBS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(BIN) *.o
+
+run:
+	./mp3editor
