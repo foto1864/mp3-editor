@@ -4,7 +4,8 @@
 static GtkWidget *image_widget;
 
 gchar *cover_path = NULL;
-GtkListStore *mp3_store = NULL;
+GtkListStore *mp3_store = NULL;\
+char* folder;
 
 void on_folder_clicked(GtkButton *button, gpointer user_data) {
     GtkWidget *dialog = gtk_file_chooser_dialog_new("Select Folder",
@@ -15,7 +16,7 @@ void on_folder_clicked(GtkButton *button, gpointer user_data) {
         NULL);
 
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        char *folder = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        folder = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
         GList *mp3s = load_mp3_files_from_folder(folder);
 
         gtk_list_store_clear(mp3_store);
@@ -32,7 +33,6 @@ void on_folder_clicked(GtkButton *button, gpointer user_data) {
         }
 
         free_mp3_metadata_list(mp3s);
-        g_free(folder);
     }
 
     gtk_widget_destroy(dialog);
@@ -139,13 +139,38 @@ void on_apply_clicked(GtkButton *button, gpointer user_data) {
         valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(mp3_store), &iter);
     }
 
-    GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
-                                               GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
-                                               "Metadata updated for all MP3s!");
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
+    // GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
+    //                                            GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
+    //                                            "Metadata updated for all MP3s!");
+    // gtk_dialog_run(GTK_DIALOG(dialog));
+    // gtk_widget_destroy(dialog);
+
+    // Reload updated metadata into the table
+    gtk_list_store_clear(mp3_store);
+    GList *updated = load_mp3_files_from_folder(folder);
+    for (GList *l = updated; l != NULL; l = l->next) {
+        MP3Metadata *meta = l->data;
+        GtkTreeIter iter;
+        gtk_list_store_append(mp3_store, &iter);
+        gtk_list_store_set(mp3_store, &iter,
+            0, meta->title,
+            1, meta->artist,
+            2, meta->album,
+            3, meta->filepath,
+            -1);
+    }
+    free_mp3_metadata_list(updated);
+
 }
 
+void on_title_edited(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
+    GtkTreeIter iter;
+    GtkTreePath *tree_path = gtk_tree_path_new_from_string(path);
+    if (gtk_tree_model_get_iter(GTK_TREE_MODEL(mp3_store), &iter, tree_path)) {
+        gtk_list_store_set(mp3_store, &iter, 0, new_text, -1);
+    }
+    gtk_tree_path_free(tree_path);
+}
 
 void on_activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window = gtk_application_window_new(app);
@@ -190,12 +215,19 @@ void on_activate(GtkApplication *app, gpointer user_data) {
     // title, artist, album, full path
 
     GtkWidget *treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(mp3_store));
+    gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(mp3_store),
+                                     0,  // column index for title
+                                     GTK_SORT_ASCENDING);
 
     const char *titles[] = {"Title", "Artist", "Album"};
     for (int i = 0; i < 3; ++i) {
         GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
-        GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(titles[i], renderer, "text", i, NULL);
-        gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+        if (i==0) { // make only the title be editable inline
+            g_object_set(renderer, "editable", TRUE, NULL);
+            g_signal_connect(renderer, "edited", G_CALLBACK(on_title_edited), NULL);
+        }
+        GtkTreeViewColumn *col = gtk_tree_view_column_new_with_attributes(titles[i], renderer, "text", i, NULL);
+        gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), col);
     }
 
     gtk_box_pack_start(GTK_BOX(right_box), treeview, TRUE, TRUE, 0);
