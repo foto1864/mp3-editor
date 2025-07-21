@@ -1,0 +1,7 @@
+# Object files (unlinked)
+main.o
+ui.o
+mp3_handler.o
+
+# Executable
+mp3editor
